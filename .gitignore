@@ -1,6 +1,9 @@
 # 构建中间产物与本地下载，不入库
 _dl/
 _selftest*/
+_shots/
+wpf/**/bin/
+wpf/**/obj/
 __pycache__/
 *.pyc
 *.tar.gz

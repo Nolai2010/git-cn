@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>GitCn.App</RootNamespace>
+    <AssemblyName>git-cn-gui</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <Version>2.55.0-cn1</Version>
+    <Description>git-cn 图形版：中文优先的 Git 客户端</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\GitCn.Core\GitCn.Core.csproj" />
+  </ItemGroup>
+
+</Project>

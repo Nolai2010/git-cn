@@ -1,0 +1,109 @@
+<Window x:Class="GitCn.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="git-cn · 中文 Git 客户端" Height="780" Width="1150"
+        MinHeight="560" MinWidth="900" WindowStartupLocation="CenterScreen">
+    <DockPanel>
+
+        <Border DockPanel.Dock="Top" Background="{StaticResource Panel}" Padding="14,10"
+                BorderBrush="#FFD0D7DE" BorderThickness="0,0,0,1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                    <TextBlock Text="git-cn" FontSize="19" FontWeight="Bold"/>
+                    <TextBlock x:Name="BranchText" Style="{StaticResource Hint}" Text="未打开仓库"/>
+                </StackPanel>
+                <TextBlock x:Name="RepoTextBlock" Grid.Column="1" Style="{StaticResource Hint}"
+                           VerticalAlignment="Center" Margin="16,0" TextTrimming="CharacterEllipsis"/>
+                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                    <Button x:Name="OpenRepoBtn" Content="选择仓库…" Click="OpenRepoBtn_Click"/>
+                    <Button x:Name="RefreshBtn" Content="刷新" Click="RefreshBtn_Click"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Grid Margin="14,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="392"/>
+                <ColumnDefinition Width="14"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    <TextBlock x:Name="ConflictHeader" Style="{StaticResource SectionTitle}"
+                               Foreground="{StaticResource Danger}" Text="有冲突，必须先解决"/>
+                    <ListBox x:Name="ConflictList" Height="86" SelectionMode="Extended"/>
+
+                    <TextBlock Style="{StaticResource SectionTitle}" Text="已暂存（这次提交会带上）"/>
+                    <ListBox x:Name="StagedList" Height="104" SelectionMode="Extended"/>
+
+                    <TextBlock Style="{StaticResource SectionTitle}" Text="改了但没 git add（不会带上！）"/>
+                    <ListBox x:Name="UnstagedList" SelectionMode="Extended" Height="104"/>
+
+                    <TextBlock Style="{StaticResource SectionTitle}" Text="未跟踪（git 完全不管）"/>
+                    <ListBox x:Name="UntrackedList" SelectionMode="Extended" Height="104"/>
+
+                    <TextBlock Style="{StaticResource Hint}" Margin="0,8,0,0"
+                               Text="多选：Ctrl 点选，Shift 连选。左边选中谁，右边“暂存/还原”就只作用于谁。"/>
+                </StackPanel>
+            </ScrollViewer>
+
+            <GridSplitter Grid.Column="1" Width="14" Background="Transparent"
+                          HorizontalAlignment="Stretch"/>
+
+            <DockPanel Grid.Column="2">
+                <StackPanel DockPanel.Dock="Top">
+                    <TextBlock Style="{StaticResource SectionTitle}" Text="写这次提交" Margin="0,0,0,4"/>
+                    <TextBox x:Name="TitleBox" Margin="0,0,0,6"
+                             Tag="title" LostFocus="TitleBox_LostFocus"/>
+                    <TextBox x:Name="BodyBox" Height="64" AcceptsReturn="True"
+                             TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+                             Tag="说明为什么这样改（可以留空）"/>
+                    <TextBlock Style="{StaticResource Hint}" Margin="2,2,0,8"
+                               Text="第一行写“改了什么”，正文写“为什么”。直接回车不会提交空说明。"/>
+
+                    <WrapPanel>
+                        <Button x:Name="CommitBtn" Style="{StaticResource Primary}"
+                                Content="暂存所选并提交" Click="CommitBtn_Click"/>
+                        <Button x:Name="PushBtn" Content="推送" Click="PushBtn_Click"/>
+                        <Button x:Name="PullBtn" Content="拉取（变基）" Click="PullBtn_Click"/>
+                        <Button x:Name="UndoBtn" Content="撤销上次提交" Click="UndoBtn_Click"/>
+                        <Button x:Name="ConflictBtn" Content="处理冲突" Click="ConflictBtn_Click"/>
+                        <Button x:Name="StageBtn" Content="只暂存所选" Click="StageBtn_Click"/>
+                        <Button x:Name="DiscardBtn" Content="丢弃所选文件改动…" Click="DiscardBtn_Click"/>
+                    </WrapPanel>
+
+                    <TextBlock Style="{StaticResource SectionTitle}" Text="体检与默认值" Margin="0,12,0,4"/>
+                    <WrapPanel>
+                        <Button x:Name="DoctorBtn" Content="体检" Click="DoctorBtn_Click"/>
+                        <Button x:Name="FixDryBtn" Content="看会改哪些" Click="FixDryBtn_Click"/>
+                        <Button x:Name="FixBtn" Content="一键写入合理默认值" Click="FixBtn_Click"/>
+                        <Button x:Name="RevertBtn" Content="撤销这些改动" Click="RevertBtn_Click"/>
+                        <Button x:Name="InitBtn" Content="新建仓库…" Click="InitBtn_Click"/>
+                    </WrapPanel>
+                    <TextBlock Style="{StaticResource Hint}" Margin="2,2,0,8"
+                               Text="写入前每个值都会先试一遍：git 不认的值直接跳过，不会把配置写坏。"/>
+                </StackPanel>
+
+                <Border DockPanel.Dock="Bottom" Background="#FFFFF7E6" BorderBrush="#FFF0B429"
+                        BorderThickness="1" CornerRadius="3" Padding="10,8" Margin="0,8,0,0"
+                        Visibility="Collapsed" x:Name="GuidePanel">
+                    <ScrollViewer MaxHeight="180" VerticalScrollBarVisibility="Auto">
+                        <TextBlock x:Name="GuideText" Foreground="{StaticResource Warn}"
+                                   TextWrapping="Wrap"/>
+                    </ScrollViewer>
+                </Border>
+
+                <TextBlock DockPanel.Dock="Bottom" x:Name="BusyText" Style="{StaticResource Hint}"
+                           Text="" Margin="2,6,0,2"/>
+                <TextBox x:Name="LogBox" Style="{StaticResource Log}" Margin="0,4,0,0"
+                         VerticalContentAlignment="Top"/>
+            </DockPanel>
+        </Grid>
+    </DockPanel>
+</Window>
