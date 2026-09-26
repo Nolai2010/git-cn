@@ -1,0 +1,23 @@
+# 构建中间产物与本地下载，不入库
+_dl/
+_selftest*/
+__pycache__/
+*.pyc
+*.tar.gz
+GIT-VERSION-FILE
+*.o
+*.obj
+*.exe
+*.dll
+*.a
+*.so
+po/build/
+.build/
+git-source/git
+git-source/git-remote-*
+git-source/builtin/binary-bloom
+git-source/t/bin-wrappers/
+git-source/t/interop/
+Documentation/*.html
+Documentation/*.1
+xdiff/.depend

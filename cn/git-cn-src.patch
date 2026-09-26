@@ -1,0 +1,279 @@
+diff -ruN '--exclude=po/build' '--exclude=*.o' base/git-2.55.0/GIT-VERSION-GEN new/git-2.55.0/GIT-VERSION-GEN
+--- base/git-2.55.0/GIT-VERSION-GEN	2026-06-29 22:58:39.000000000 +0800
++++ new/git-2.55.0/GIT-VERSION-GEN	2026-09-27 02:44:03.934257752 +0800
+@@ -1,6 +1,6 @@
+ #!/bin/sh
+ 
+-DEF_VER=v2.55.0
++DEF_VER=v2.55.0.cn1
+ 
+ LF='
+ '
+diff -ruN '--exclude=po/build' '--exclude=*.o' base/git-2.55.0/builtin/checkout.c new/git-2.55.0/builtin/checkout.c
+--- base/git-2.55.0/builtin/checkout.c	2026-06-29 22:58:39.000000000 +0800
++++ new/git-2.55.0/builtin/checkout.c	2026-09-27 02:44:03.930435235 +0800
+@@ -2120,6 +2120,9 @@
+ 	opts.checkout_index = -2;    /* default on */
+ 	opts.checkout_worktree = -2; /* default on */
+ 
++	if ((argc == 2 && !strcmp(argv[1], ".")) ||
++	    (argc == 3 && !strcmp(argv[1], "--") && !strcmp(argv[2], ".")))
++		advise(_("checkout with a path restores file contents and discards uncommitted edits; since Git 2.23 the clearer command for that is 'git restore'. Consider 'git stash push -u' first"));
+ 	if (argc == 3 && !strcmp(argv[1], "-b")) {
+ 		/*
+ 		 * User ran 'git checkout -b <branch>' and expects
+diff -ruN '--exclude=po/build' '--exclude=*.o' base/git-2.55.0/builtin/reset.c new/git-2.55.0/builtin/reset.c
+--- base/git-2.55.0/builtin/reset.c	2026-06-29 22:58:39.000000000 +0800
++++ new/git-2.55.0/builtin/reset.c	2026-09-27 02:44:03.929544229 +0800
+@@ -459,8 +459,11 @@
+ 			die(_("Cannot do %s reset with paths."),
+ 					_(reset_type_names[reset_type]));
+ 	}
+-	if (reset_type == NONE)
++	if (reset_type == NONE) {
+ 		reset_type = MIXED; /* by default */
++		if (!quiet && !pathspec.nr)
++			advise(_("no mode given: this is a MIXED reset - commits are undone, staged changes become unstaged, file contents are NOT touched. Use --soft to keep them staged, or --hard to also throw away your edits"));
++	}
+ 
+ 	if (pathspec.nr)
+ 		trace2_cmd_mode("path");
+diff -ruN '--exclude=po/build' '--exclude=*.o' base/git-2.55.0/po/zh_CN.po new/git-2.55.0/po/zh_CN.po
+--- base/git-2.55.0/po/zh_CN.po	2026-06-29 22:58:39.000000000 +0800
++++ new/git-2.55.0/po/zh_CN.po	2026-09-27 02:44:06.456253548 +0800
+@@ -982,7 +982,7 @@
+ 
+ #: advice.c
+ msgid "Merging is not possible because you have unmerged files."
+-msgstr "无法合并，因为您有未合并的文件。"
++msgstr "还有冲突没解决完，所以不能合并。用 git status 找到标着 UU 的文件先处理。"
+ 
+ #: advice.c
+ msgid "Pulling is not possible because you have unmerged files."
+@@ -1084,21 +1084,20 @@
+ "false\n"
+ "\n"
+ msgstr ""
+-"注意：正在切换到 '%s'。\n"
++"注意：正在切到 '%s'。\n"
+ "\n"
+-"您正处于分离头指针状态。您可以查看、做试验性的修改及提交，并且您可以在切换\n"
+-"回一个分支时，丢弃在此状态下所做的提交而不对分支造成影响。\n"
++"你现在处于“游离 HEAD”：不在任何分支上。此时的提交不属于任何分支，\n"
++"切走之后只能靠 reflog 找回，看起来就像代码丢了。\n"
+ "\n"
+-"如果您想要通过创建分支来保留在此状态下所做的提交，您可以通过在 switch 命令\n"
+-"中添加参数 -c 来实现（现在或稍后）。例如：\n"
++"想保住这些提交，随时可以给当前状态建分支（现在做或稍后做都行）：\n"
+ "\n"
+ "  git switch -c <新分支名>\n"
+ "\n"
+-"或者撤销此操作：\n"
++"想回到刚才的分支：\n"
+ "\n"
+ "  git switch -\n"
+ "\n"
+-"通过将配置变量 advice.detachedHead 设置为 false 来关闭此建议\n"
++"不想再看这条提示：git config --global advice.detachedHead false\n"
+ "\n"
+ 
+ #: advice.c
+@@ -12173,8 +12172,9 @@
+ "Your local changes to the following files would be overwritten by merge:\n"
+ "  %s"
+ msgstr ""
+-"您对下列文件的本地修改将被合并操作覆盖：\n"
+-"  %s"
++"这些文件有未提交改动，会被这次合并覆盖，所以 Git 停住了（这是保护，不是故障）：\n"
++"  %s\n"
++"先 git stash push -u 收起来，或提交掉，再重跑刚才的命令"
+ 
+ #: builtin/merge.c
+ #, c-format
+@@ -13818,10 +13818,10 @@
+ "\n"
+ "    git push %s HEAD:<name-of-remote-branch>\n"
+ msgstr ""
+-"您当前不在一个分支上。\n"
+-"现在为推送当前（分离头指针）的历史，使用\n"
++"你现在不在任何分支上，所以不能直接 push。\n"
++"要把当前状态推上去，得显式给远端分支名：\n"
+ "\n"
+-"    git push %s HEAD:<远程分支名字>\n"
++"    git push %s HEAD:<远程分支名>\n"
+ 
+ #: builtin/push.c
+ msgid ""
+@@ -13842,8 +13842,8 @@
+ "    git push --set-upstream %s %s\n"
+ "%s"
+ msgstr ""
+-"当前分支 %s 没有对应的上游分支。\n"
+-"为推送当前分支并建立与远程上游的跟踪，使用\n"
++"分支 %s 还没有上游，Git 不知道该推到远端的哪个分支。\n"
++"第一次推送用下面这条，之后就能直接 git push：\n"
+ "\n"
+ "    git push --set-upstream %s %s\n"
+ "%s"
+@@ -26378,7 +26378,7 @@
+ #: ref-filter.c
+ #, c-format
+ msgid "(HEAD detached at %s)"
+-msgstr "（头指针在 %s 分离）"
++msgstr "%s（游离 HEAD，不属于任何分支）"
+ 
+ #: ref-filter.c
+ #, c-format
+@@ -27176,7 +27176,8 @@
+ 
+ #: remote.c
+ msgid "  (use \"git push\" to publish your local commits)\n"
+-msgstr "  （使用 \"git push\" 来发布您的本地提交）\n"
++msgstr ""
++"  （本地有远端还没有的提交，git push 发出去）\n"
+ 
+ #: remote.c
+ #, c-format
+@@ -30538,7 +30539,7 @@
+ #  译者：注意保持前导空格
+ #: wt-status.c
+ msgid "  (use \"git restore --staged <file>...\" to unstage)"
+-msgstr "  （使用 \"git restore --staged <文件>...\" 以取消暂存）"
++msgstr "  （把文件移出暂存区用 git restore --staged <文件>...，文件内容不会被删）"
+ 
+ #  译者：注意保持前导空格
+ #: wt-status.c
+@@ -30568,16 +30569,16 @@
+ 
+ #: wt-status.c
+ msgid "Changes to be committed:"
+-msgstr "要提交的变更："
++msgstr "已暂存：这些内容会进入下一次提交"
+ 
+ #: wt-status.c
+ msgid "Changes not staged for commit:"
+-msgstr "尚未暂存以备提交的变更："
++msgstr "已修改但没 git add：这些内容不会进入下一次提交"
+ 
+ #  译者：注意保持前导空格
+ #: wt-status.c
+ msgid "  (use \"git add <file>...\" to update what will be committed)"
+-msgstr "  （使用 \"git add <文件>...\" 更新要提交的内容）"
++msgstr "  （要进入提交必须先 git add <文件>...）"
+ 
+ #  译者：注意保持前导空格
+ #: wt-status.c
+@@ -30588,7 +30589,7 @@
+ #: wt-status.c
+ msgid ""
+ "  (use \"git restore <file>...\" to discard changes in working directory)"
+-msgstr "  （使用 \"git restore <文件>...\" 丢弃工作区的改动）"
++msgstr "  （想丢掉这些未提交改动用 git restore <文件>...，丢出去找不回来）"
+ 
+ #  译者：注意保持前导空格
+ #: wt-status.c
+@@ -30599,7 +30600,7 @@
+ #: wt-status.c
+ #, c-format
+ msgid "  (use \"git %s <file>...\" to include in what will be committed)"
+-msgstr "  （使用 \"git %s <文件>...\" 以包含要提交的内容）"
++msgstr "  （要纳入版本控制就 git %s <文件>...；只是本地产物就写进 .gitignore）"
+ 
+ #: wt-status.c
+ msgid "both deleted:"
+@@ -30987,7 +30988,7 @@
+ 
+ #: wt-status.c
+ msgid "Untracked files"
+-msgstr "未跟踪的文件"
++msgstr "git 还没管起来的文件"
+ 
+ #: wt-status.c
+ msgid "Ignored files"
+@@ -31028,7 +31029,8 @@
+ #: wt-status.c
+ #, c-format
+ msgid "no changes added to commit (use \"git add\" and/or \"git commit -a\")\n"
+-msgstr "修改尚未加入提交（使用 \"git add\" 和/或 \"git commit -a\"）\n"
++msgstr ""
++"没有内容进入本次提交：先 git add 挑文件，或者用 git commit -a 连同已跟踪文件的改动一起提交\n"
+ 
+ #: wt-status.c
+ #, c-format
+@@ -31065,7 +31067,8 @@
+ #: wt-status.c
+ #, c-format
+ msgid "nothing to commit, working tree clean\n"
+-msgstr "无文件要提交，工作区干净\n"
++msgstr ""
++"没有待提交的改动，工作区和最后一次提交一致（也可能你的改动被 .gitignore 忽略了）\n"
+ 
+ #: wt-status.c
+ msgid "No commits yet on "
+@@ -31596,3 +31599,19 @@
+ #, perl-format
+ msgid "Do you really want to send %s? [y|N]: "
+ msgstr "您真的要发送 %s？[y|N]："
++
++# git-cn 新增译文
++
++msgid ""
++"no mode given: this is a MIXED reset - commits are undone, staged changes become unstaged, file contents are NOT touched. Use --soft to keep them staged, or --hard to also throw away your edits"
++msgstr ""
++"你没写模式，所以这次是 MIXED 重置：提交记录退回、暂存区清空、文件内容保持不变。\n"
++"  想让改动仍留在暂存区 -> git reset --soft HEAD~1\n"
++"  想连文件内容一起丢弃 -> git reset --hard HEAD~1（不可恢复，先 git stash push -u）"
++
++msgid ""
++"checkout with a path restores file contents and discards uncommitted edits; since Git 2.23 the clearer command for that is 'git restore'. Consider 'git stash push -u' first"
++msgstr ""
++"你这是在还原文件内容，不是切分支：未提交的改动会被丢掉且找不回来。\n"
++"  Git 2.23 起这类操作用 git restore <文件> 更清楚（切分支用 git switch）\n"
++"  想保住改动，先备份：git stash push -u"
+diff -ruN '--exclude=po/build' '--exclude=*.o' base/git-2.55.0/refs.c new/git-2.55.0/refs.c
+--- base/git-2.55.0/refs.c	2026-06-29 22:58:39.000000000 +0800
++++ new/git-2.55.0/refs.c	2026-09-27 02:44:03.927155422 +0800
+@@ -704,9 +704,9 @@
+ #ifdef WITH_BREAKING_CHANGES
+ 		ret = xstrdup("main");
+ #else
+-		ret = xstrdup("master");
++		ret = xstrdup("main"); /* git-cn: 默认分支直接采用 main */
+ #endif /* WITH_BREAKING_CHANGES */
+-		if (!quiet)
++		if (!quiet && strcmp(ret, "main"))
+ 			advise_if_enabled(ADVICE_DEFAULT_BRANCH_NAME,
+ 					  _(default_branch_name_advice), ret);
+ 	}
+diff -ruN '--exclude=po/build' '--exclude=*.o' base/git-2.55.0/t/t0001-init.sh new/git-2.55.0/t/t0001-init.sh
+--- base/git-2.55.0/t/t0001-init.sh	2026-06-29 22:58:39.000000000 +0800
++++ new/git-2.55.0/t/t0001-init.sh	2026-09-27 02:44:03.933912013 +0800
+@@ -872,11 +872,11 @@
+ 	grep nmb actual
+ '
+ 
+-test_expect_success 'advice on unconfigured init.defaultBranch' '
++test_expect_success 'no master->main advice under git-cn (default already main)' '
+ 	GIT_TEST_DEFAULT_INITIAL_BRANCH_NAME= git -c color.advice=always \
+ 		init unconfigured-default-branch-name 2>err &&
+ 	test_decode_color <err >decoded &&
+-	test_grep "<YELLOW>hint: " decoded
++	test_grep ! "<YELLOW>hint: " decoded
+ '
+ 
+ test_expect_success 'advice on unconfigured init.defaultBranch disabled' '
+@@ -888,12 +888,8 @@
+ '
+ 
+ test_expect_success 'default branch name' '
+-	if test_have_prereq WITH_BREAKING_CHANGES
+-	then
+-		expect=main
+-	else
+-		expect=master
+-	fi &&
++	# git-cn: 默认分支固定 main，不再随 WITH_BREAKING_CHANGES 变化
++	expect=main &&
+ 	echo "refs/heads/$expect" >expect &&
+ 	(
+ 		sane_unset GIT_TEST_DEFAULT_INITIAL_BRANCH_NAME &&

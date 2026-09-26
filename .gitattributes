@@ -1,0 +1,11 @@
+# 换行符：索引里存 LF，检出也强制 LF。
+# 只用 text=auto 的话，在 core.autocrlf=true 的 Windows 上会把 .c / Makefile
+# 检出成 CRLF（WSL 里 make 会因 \r 出问题，build_git.sh 之类脚本直接跑不动）。
+* text eol=lf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+*.png binary
+*.jpg binary
+*.gif binary
+*.gz binary
+*.tar binary
