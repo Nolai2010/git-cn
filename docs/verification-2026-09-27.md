@@ -61,12 +61,14 @@ WSL 的 `127.0.0.1` 是虚拟机本身，所以真实外网请求连不上（`Fa
 注意：这批 263 个文件里有一部分是因为缺 svn/p4/tcl 等依赖而整体跳过（退出码 0），
 所以"263 全过"要理解为"没有任何一个能跑起来的用例失败"，而不是"263 个文件都真跑了断言"。
 
-## 4. 包装器自检 `wrapper/selftest.sh`：20 项全过
+## 4. 包装器自检 `wrapper/selftest.sh`：22 项全过
 
 在临时仓库里跑，`GIT_CONFIG_GLOBAL` 指向临时文件，**不会碰到真实 `~/.gitconfig`**：
 
-- `doctor` 能报出缺失项，`fix` 后复检为"配置全部到位"
-- `fix --dry` 明确不落盘
+- `doctor` 能报出缺失项，`fix` 后复检为"配置全部到位"；`fix --dry` 明确不落盘
+- **试值护栏被正反两个方向证明**：`_probe diff.algorithm=meyers` → "被 git 拒绝"（退出码 1），
+  `_probe diff.algorithm=histogram` → "可接受"。会真解析配置值的命令是 `git -c k=v diff --quiet`
+  （在一次性临时仓库里跑）；`rev-parse`/`config --get`/`--version` 都不会解析值，拿它们当护栏等于没护栏
 - 危险闸：回答"否"时 `restore` 未执行、改动仍在；回答"是"时先自动 `git stash push -u` 备份且能从 `stash list` 找回
 - `git restore --staged` 不触发闸门（可逆操作）
 - 报错翻译卡片在真实失败路径上出现；拼错命令给出相近命令
@@ -76,12 +78,20 @@ WSL 的 `127.0.0.1` 是虚拟机本身，所以真实外网请求连不上（`Fa
 
 ## 5. 开发过程中被测试挡住的真实缺陷（保留记录）
 
-1. `diff.algorithm=meyers` 是错拼，git 直接 `fatal: bad config variable`，会让用户**所有** git 命令失效
-   → 加"写入前先用 `git -c` 试值"的护栏，并改用 `histogram`。
+1. `diff.algorithm=meyers` 是错拼，git 会 `fatal: bad config variable`，让用户**所有** git 命令失效。
+   第一版护栏（`git -c k=v rev-parse --git-dir`）后来被实测证伪：好坏值输出一模一样，因为 `rev-parse`
+   根本不解析配置值——**等于没护栏**。换成在临时仓库里跑 `git -c k=v diff --quiet`，并用 `_probe`
+   加了两条正反断言，才真拦住。
 2. `help.autocorrect=10` 实测会**自动执行猜出来的命令**（`git lgo` 跑了 `git log`）→ 钉到 `0`。
 3. `po` 里 `git push` 那条提示的 `msgid` 以 `\n` 结尾，改写时漏了 → `msgfmt` 编译期致命错误 → 把换行对称规则前置成补丁期校验。
 4. porcelain 输出里中文路径是八进制转义串，回传给 `git add` 必然失败 → 改用 `-z` + `core.quotepath=false`。
 5. `restore <单个文件>` 完全没进危险闸（旧正则只匹配 `.` / `-f` / `--`），恰恰是最常见的丢改动动作 → 补规则。
-6. stdin 没设 UTF-8，管道输入中文仓库名落成乱码目录 → 一并重配 `sys.stdin`。
+6. stdin 没设 UTF-8，管道输入中文仓库名落成乱码目录 → 一并重配 `sys.stdin`；同时改成**只在非 tty 时**强制 UTF-8，
+   因为真控制台走 Python 宽字符通道，硬设 utf-8 反而会在 GBK 码页控制台上乱码。
 7. `git-cn init` 在父仓库目录里执行 `git add -A` → 改为对新仓库 `-C` 定向。
 8. 重写子命令表时漏掉 `checkout/restore/reset/log`，导致它们走"未知子命令"分支 → 自检脚本当场抓到。
+9. `git-cn.cmd` 里写了中文注释：cmd.exe 用 OEM 码页读批处理，UTF-8 中文变垃圾字节后**把后面几行都啃坏**
+   （表现为 `'orlevel' 不是内部或外部命令`），并且 `%errorlevel%` 写在括号块里会在解析期展开、传错退出码
+   → 批处理全 ASCII + `if not errorlevel 1 goto` 结构。
+10. Git Bash 里 `python3` 会命中 Microsoft Store 的空壳别名，`exec` 之后**静默无输出** →
+    shim 改为先 `-c 'import sys'` 试跑，能真跑起来才用它。

@@ -1,0 +1,6 @@
+Solution "git-cn" {
+    Project("src/GitCn.Core/GitCn.Core.csproj") = "{A1000000-0000-0000-0000-000000000001}"
+    Project("src/GitCn.Cli/GitCn.Cli.csproj") = "{A1000000-0000-0000-0000-000000000002}"
+    Project("src/GitCn.App/GitCn.App.csproj") = "{A1000000-0000-0000-0000-000000000003}"
+    Project("tests/GitCn.Core.Tests/GitCn.Core.Tests.csproj") = "{A1000000-0000-0000-0000-000000000004}"
+}

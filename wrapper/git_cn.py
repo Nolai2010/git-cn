@@ -38,7 +38,10 @@ def init_console():
             pass
     for stream in (sys.stdout, sys.stderr, sys.stdin):
         try:
-            stream.reconfigure(encoding="utf-8", errors="replace")
+            # 真控制台走 Python 的宽字符通道（GBK 码页也能正确显示中文），
+            # 只有管道/重定向时才强制按 UTF-8 读写字节。
+            if not stream.isatty():
+                stream.reconfigure(encoding="utf-8", errors="replace")
         except Exception:
             pass
 
@@ -398,6 +401,47 @@ def cmd_run(argv, assume_yes):
     return cmd_run(["git", *argv], assume_yes)
 
 
+_PROBE_DIR = None
+
+
+def probe_repo():
+    """一次性建个空仓库当试值台：diff 系列配置只有在工作区里才会被真正解析。"""
+    global _PROBE_DIR
+    if _PROBE_DIR:
+        return _PROBE_DIR
+    import tempfile
+    d = tempfile.mkdtemp(prefix="git-cn-probe-")
+    rc, _, _ = git("init", "-q", "--", d)
+    if rc != 0:
+        return None
+    git("-c", "user.email=probe@local", "-c", "user.name=probe",
+        "commit", "-q", "--allow-empty", "-m", "probe", "-C", d)
+    _PROBE_DIR = d
+    return d
+
+
+def value_is_acceptable(key, value):
+    d = probe_repo()
+    if not d:
+        return True
+    _, out, err = git("-C", d, "-c", f"{key}={value}", "diff", "--quiet")
+    t = out + err
+    return not re.search(r"unknown value for config|bad config|invalid.*config", t, re.I)
+
+
+def cmd_probe_value(argv):
+    bad_any = False
+    for item in argv:
+        if "=" not in item:
+            say(f"用法：git-cn _probe key=value ...")
+            return 2
+        key, val = item.split("=", 1)
+        good = value_is_acceptable(key, val)
+        bad_any = bad_any or not good
+        say(f"{key}={val}  ->  {'可接受' if good else '被 git 拒绝'}")
+    return 1 if bad_any else 0
+
+
 def cmd_fix(dry=False, revert=False):
     in_repo = bool(repo_root())
     want = [
@@ -455,10 +499,9 @@ def cmd_fix(dry=False, revert=False):
     for key, val, why, cur in changes:
         tag = f"{key} = {val}"
         note = f"{BOLD}{tag}{RESET}" if not cur else f"{BOLD}{tag}{RESET} {DIM}(原: {cur}){RESET}"
-        rc_probe, _, err_probe = git("-c", f"{key}={val}", "rev-parse", "--git-dir")
-        if rc_probe != 0 and ("config" in err_probe.lower() or "bad " in err_probe.lower()):
+        if not value_is_acceptable(key, val):
             say(f"  {RED}[跳过]{RESET} {note}")
-            say(f"          {DIM}git 拒绝这个值：{err_probe.strip().splitlines()[0] if err_probe.strip() else '未知原因'}{RESET}")
+            say(f"          {DIM}git 不接受这个值，写进去会让所有 git 命令报错{RESET}")
             continue
         say(("  [试算] " if dry else "  [写入] ") + note)
         say(f"          {DIM}{why}{RESET}")
@@ -1053,6 +1096,7 @@ def main(argv):
         "conflict": cmd_conflict, "checkout": lambda: cmd_checkout(rest),
         "co": lambda: cmd_checkout(rest), "init": cmd_init,
         "stash": lambda: cmd_stash(rest), "menu": cmd_menu,
+        "_probe": lambda: cmd_probe_value(rest),
     }
     if sub in table:
         try:

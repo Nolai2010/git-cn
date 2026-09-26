@@ -128,7 +128,7 @@ cn/run_tests.sh "$HOME/gitcn-build/git-2.55.0"      # 上游回归测试
 - **汉化版 git 构建**：`cn/build_git.sh` 从上游 v2.55.0 tar 包 → `cn_patch.py` 打补丁（含 `msgfmt -c` 校验）→ 编译 → 安装，产出 `git version 2.55.0.cn1`。
 - **行为验收 `cn/verify.sh`：15/15 通过**。对象是安装后的二进制，不是源码静态检查：版本号、默认分支 `main`、三类 status 表头改口、中文文件名不被转义、`reset` 三层解释、`checkout .` 提示、游离 HEAD 中文说明、无上游提示、建立上游后推送成功、`file://` 克隆回来中文文件名完好、https 传输层已链接。
 - **上游回归 `cn/run_tests.sh`：263 个测试文件，0 失败**。判据是测试脚本退出码——正是它先抓出 2 个真失败（`t0001-init` 断言默认分支为 `master`、断言还有 `master→main` 迁移提示）。这两处是本 fork **有意的行为分叉**，所以把上游断言一并改掉并写进补丁器。注意这 263 个文件里有一部分因缺 svn/p4/tcl 依赖而整体跳过，所以准确说法是"没有一个能跑起来的用例失败"。
-- **包装器自检 `bash wrapper/selftest.sh`：20/20 通过**。跑在临时仓库 + 独立 `GIT_CONFIG_GLOBAL` 里，不碰你真实的 `~/.gitconfig`。覆盖 `doctor`、`fix --dry`/`fix`、危险闸的取消路径与"确认后自动 stash 备份且能找回"、`restore --staged` 不误拦、报错翻译卡片、拼错建议、`checkout` 路由、非数字计数被拒、菜单进出。
+- **包装器自检 `bash wrapper/selftest.sh`：22/22 通过**。跑在临时仓库 + 独立 `GIT_CONFIG_GLOBAL` 里，不碰你真实的 `~/.gitconfig`。覆盖 `doctor`、`fix --dry`/`fix`、**试值护栏的正反两向证明**（`diff.algorithm=meyers` 必须被判"被 git 拒绝"、`histogram` 必须放行）、危险闸的取消路径与"确认后自动 stash 备份且能找回"、`restore --staged` 不误拦、报错翻译卡片、拼错建议、`checkout` 路由、非数字计数被拒、菜单进出。
 - 完整过程与踩坑记录见 `docs/verification-2026-09-27.md`；Linux/WSL 二进制在 **Release `v2.55.0.cn1`**。
 
 **没做到 / 已知边界**：

@@ -32,6 +32,9 @@ chk "status 中文分类"       "改了但没暂存" "$F"
 chk "status 显示中文文件名" "说明.md" "$F"
 chk "fix 真实写入并给出回退方式" "git-cn fix --revert" "$(run "$WORK/repo" fix)"
 chk "doctor 复检通过"       "配置全部到位" "$(run "$WORK/repo" doctor)"
+# 试值护栏必须被证明有效：坏值要被拒、好值不能误杀
+chk "护栏拦下 git 不认的值" "被 git 拒绝" "$(run "$WORK/repo" _probe diff.algorithm=meyers)"
+chk "护栏不误杀合法值"     "可接受"     "$(run "$WORK/repo" _probe diff.algorithm=histogram)"
 
 # 危险闸：回答“否”必须不执行
 printf 'n\n' | run "$WORK/repo" restore 说明.md > "$WORK/g1.log" 2>&1
