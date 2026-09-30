@@ -147,9 +147,14 @@ public partial class MainWindow : Window
             GuidePanel.Visibility = Visibility.Visible;
             return;
         }
-        ShowOp(await Ops.CommitAsync(_dir, title, BodyBox.Text));
-        TitleBox.Clear();
-        BodyBox.Clear();
+        var done = await Ops.CommitAsync(_dir, title, BodyBox.Text);
+        ShowOp(done);
+        if (done.Ok)
+        {
+            // 失败时保留用户刚写的说明，让他改一个字就能重试
+            TitleBox.Clear();
+            BodyBox.Clear();
+        }
         await RefreshAsync();
     }
 
